@@ -7,7 +7,7 @@ args:
         index: 1
         required: true
         help: encrypting mode [xor, aes]
-    - sc_path:
+    - file_path:
         short: p
         help: path to shellcode for xoring
         takes_value: true

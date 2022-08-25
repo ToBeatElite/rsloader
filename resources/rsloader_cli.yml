@@ -1,12 +1,10 @@
-name: rscrypter
+name: apple_pie
 version: "0.1.0"
-author: ToBeatElite <tobeatelite@gmail.com>
-about: rustlang shellcode runner
+author: the biggest dumbass on the planet
+about: apple pie
 args:
-    - sc_path:
+    - file_path:
         short: p
-        help: path to shellcode for xoring
+        help: path to apple pie recipie
         takes_value: true
         required: true
-
-# rscrypter -p input

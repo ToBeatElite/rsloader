@@ -16,7 +16,7 @@ fn main() {
         }
     };
 
-    let shellcode_path = argv.value_of("sc_path").unwrap();
+    let shellcode_path = argv.value_of("file_path").unwrap();
 
     let rand_chars: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)

