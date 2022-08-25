@@ -1,0 +1,23 @@
+name: rscrypter
+version: "0.1.0"
+author: ToBeatElite <tobeatelite@gmail.com>
+about: rustlang shellcode runner
+args:
+    - mode:
+        index: 1
+        required: true
+        help: encrypting mode [xor, aes]
+    - sc_path:
+        short: p
+        help: path to shellcode for xoring
+        takes_value: true
+        required: true
+    - out_path:
+        short: o
+        help: path to output xored shellcode
+        takes_value: true
+
+# rscrypter xor -p input -o output
+# rscrypter xor -p input 
+# rscrypter aes -p input -o output
+# rscrypter aes -p input 

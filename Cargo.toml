@@ -1,0 +1,18 @@
+[package]
+name = "rsloader"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "rsloader"
+path = "src/bin/rsloader.rs"
+
+[[bin]]
+name = "rscrypter"
+path = "src/bin/rscrypter.rs"
+
+[dependencies]
+rand = "0.8.5"
+mmap-fixed = "0.1"
+clap = {version = "2.33", features = ["yaml"]}
+aes-gcm = "0.10.1" 

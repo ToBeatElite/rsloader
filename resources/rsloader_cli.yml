@@ -1,0 +1,12 @@
+name: rscrypter
+version: "0.1.0"
+author: ToBeatElite <tobeatelite@gmail.com>
+about: rustlang shellcode runner
+args:
+    - sc_path:
+        short: p
+        help: path to shellcode for xoring
+        takes_value: true
+        required: true
+
+# rscrypter -p input
