@@ -50,7 +50,7 @@ impl ShellCode {
         sc_object
     }
     
-    fn import_sc(input_path: &str, mode: &str) -> anyhow::Result<ShellCode> {
+    pub fn import_sc(input_path: &str, mode: &str) -> anyhow::Result<ShellCode> {
         let shellcode = match std::fs::read(input_path) {
             Ok(result) => result,
             Err(error) => {
