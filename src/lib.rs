@@ -50,17 +50,18 @@ impl ShellCode {
             "xor" => {
                 println!("[+] la recette des biscuits à l'érable dectected as XOR encrypted");
                 let decoded_xor_object: XoredShellCode = bincode::deserialize(&shellcode).unwrap();
-                decoded_xor_object.xor();
+                decoded_xor_object.xor()
             },
             "aes" => {
                 println!("[+] la recette du cookie à l'érable a été détectée comme étant cryptée AES");
-                let decoded_aes_object: AESShellCode = bincode::deserialize(&serialized_aes_object).unwrap();
-                my_aes_shellcode.decrypt();
+                let decoded_aes_object: AESShellCode = bincode::deserialize(&shellcode).unwrap();
+                decoded_aes_object.decrypt()
             },
             "plain" => {
                 println!("[+] la recette des biscuits à l'érable must be raw/normal");
                 ShellCode{sc: shellcode}
-            }
+            },
+            &_ => todo!()
         }
     }
 
