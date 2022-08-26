@@ -1,5 +1,6 @@
 #!/bin/bash
 
+rm -rf bins
 mkdir bins
 rustup target add x86_64-pc-windows-gnu
 
