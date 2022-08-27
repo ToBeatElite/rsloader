@@ -37,19 +37,18 @@ pub struct AESShellCode {
 }
 
 impl ShellCode {
-
-    pub fn from_file(input_path: &str) -> rsloader::ShellCode {
-        let sc_object = match rsloader::ShellCode::import_sc(input_path, "xor") {
+    pub fn from_file(input_path: &str) -> ShellCode {
+        let sc_object = match ShellCode::import_sc(input_path, "xor") {
             Ok(my_xor_object) => my_xor_object,
-            Err(_) => match rsloader::ShellCode::import_sc(input_path, "aes") {
+            Err(_) => match ShellCode::import_sc(input_path, "aes") {
                 Ok(my_aes_object) => my_aes_object,
-                Err(_) => rsloader::ShellCode::import_sc(input_path, "plain").unwrap(),
+                Err(_) => ShellCode::import_sc(input_path, "plain").unwrap(),
             },
         };
-    
+
         sc_object
     }
-    
+
     pub fn import_sc(input_path: &str, mode: &str) -> anyhow::Result<ShellCode> {
         let shellcode = match std::fs::read(input_path) {
             Ok(result) => result,
