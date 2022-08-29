@@ -4,12 +4,36 @@ version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "rsloader"
-path = "src/bin/rsloader.rs"
+name = "rscrypter"
+path = "src/examples/crypters/rscrypter.rs"
 
 [[bin]]
-name = "rscrypter"
-path = "src/bin/rscrypter.rs"
+name = "rsloader"
+path = "src/examples/loaders/rsloader.rs"
+
+[[bin]]
+name = "rsloader_EnumSystemGeoID"
+path = "src/examples/loaders/rsloader_EnumSystemGeoID.rs"
+
+[[bin]]
+name = "rsloader_CreateRemoteThread"
+path = "src/examples/loaders/rsloader_CreateRemoteThread.rs"
+
+[[bin]]
+name = "mirincrypter"
+path = "src/examples/crypters/mirincrypter.rs"
+
+[[bin]]
+name = "mirinloader"
+path = "src/examples/loaders/mirinloader.rs"
+
+[[bin]]
+name = "mirinloader_EnumSystemGeoID"
+path = "src/examples/loaders/mirinloader_EnumSystemGeoID.rs"
+
+[[bin]]
+name = "mirinloader_CreateRemoteThread"
+path = "src/examples/loaders/mirinloader_CreateRemoteThread.rs"
 
 [profile.release]
 codegen-units = 1

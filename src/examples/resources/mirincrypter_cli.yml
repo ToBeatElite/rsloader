@@ -1,0 +1,28 @@
+name: mirincrypter
+version: "0.1.0"
+author: ToBeatElite <tobeatelite@gmail.com>
+about: rustlang shellcode runner
+args:
+    - mode:
+        index: 1
+        required: true
+        help: encrypting mode [xor, aes]
+    - file_path:
+        short: p
+        help: path to shellcode for xoring
+        takes_value: true
+        required: true
+    - out_path:
+        short: o
+        help: path to output xored shellcode
+        takes_value: true
+    - base_pic:
+        short: b
+        help: picture to inject shellcode into (jpg tested)
+        takes_value: true
+        required: true
+
+# mirincrypter xor -p input -b ~/mirin.jpg -o output
+# mirincrypter xor -p input -b ~/mirin.jpg
+# mirincrypter aes -p input -b ~/mirin.jpg -o output
+# mirincrypter aes -p input -b ~/mirin.jpg

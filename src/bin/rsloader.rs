@@ -2,9 +2,9 @@ fn main() {
     // create aes encrypted shellcode from raw shellcode file "lmao" and export it into a jpg file "mirin.jpg"
 
     //let my_sc_object = rsloader::AESShellCode::new(rsloader::ShellCode {
-    //    sc: include_bytes!("../../lmao").to_vec(),
+    //    sc: include_bytes!("../../haha").to_vec(),
     //});
-    //my_sc_object.output_to_image("mirin.jpg", "mqdefault.jpg");
+    //my_sc_object.output_to_image("mirin.jpg", "/home/tobeatelite/Downloads/mqdefault.jpg");
 
     // extract aes shellcode object from mirin.jpg, decrypt it and execute it inside current process
 

