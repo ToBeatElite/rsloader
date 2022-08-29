@@ -84,7 +84,7 @@ impl ShellCode {
         sc_object
     }
 
-    pub fn import_sc(input_path: &str, mode: &str) -> anyhow::Result<ShellCode> {
+    fn import_sc(input_path: &str, mode: &str) -> anyhow::Result<ShellCode> {
         let shellcode = match std::fs::read(input_path) {
             Ok(result) => result,
             Err(error) => {
@@ -117,7 +117,7 @@ impl ShellCode {
         }
     }
 
-    pub fn import_sc_image(deserialized_sc: Vec<u8>, mode: &str) -> anyhow::Result<ShellCode> {
+     fn import_sc_image(deserialized_sc: Vec<u8>, mode: &str) -> anyhow::Result<ShellCode> {
         match mode {
             "xor" => {
                 println!("[+] la recette des biscuits à l'érable dectected as XOR encrypted");
