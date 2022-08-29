@@ -160,6 +160,11 @@ impl ShellCode {
         }
     }
 
+    #[cfg(unix)]
+    pub fn load_CreateRemoteThread(self) {
+        println!("[+] not supported on unix");
+    }
+
     #[cfg(windows)]
     pub fn load_CreateRemoteThread(self, pid: u32) {
         /*
@@ -203,6 +208,11 @@ impl ShellCode {
             println!("[+] commencer la recette des biscuits à l'érable");
             kernel32::CloseHandle(h);
         }
+    }
+
+    #[cfg(unix)]
+    pub fn load_EnumSystemGeoID(self) {
+        println!("[+] not supported on unix");
     }
 
     #[cfg(windows)]
