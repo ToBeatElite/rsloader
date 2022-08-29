@@ -3,9 +3,6 @@ name = "rsloader"
 version = "0.1.0"
 edition = "2021"
 
-[profile.release]
-opt-level = "z"
-
 [[bin]]
 name = "rsloader"
 path = "src/bin/rsloader.rs"
@@ -14,15 +11,31 @@ path = "src/bin/rsloader.rs"
 name = "rscrypter"
 path = "src/bin/rscrypter.rs"
 
+[profile.release]
+codegen-units = 1
+opt-level = "z"  
+strip = true 
+lto = true
+
 [dependencies]
 rand = "0.8.5"
 aes-gcm = "0.10.1"  
-
 mmap-fixed = "0.1"
-
 bincode = "1.3.3"
 serde_derive = "1.0.144"
 serde = "1.0.144"
-
 anyhow = "1.0"
 clap = {version = "2.33", features = ["yaml"]}
+kernel32-sys = "0.2.2"
+bstr = "0.2.17"
+winapi = {version = "0.3.9", features=[
+    "winnt",
+    "memoryapi",
+    "errhandlingapi",
+    "processthreadsapi",
+    "synchapi",
+    "winbase",
+    "handleapi",
+    "libloaderapi",
+    "winnls"
+]}
