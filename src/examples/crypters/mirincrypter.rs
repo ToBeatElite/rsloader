@@ -45,7 +45,6 @@ fn main() {
         }
     };
 
-    
     println!("[+] read shellcode from {}", shellcode_path);
 
     if mode == "aes" {
