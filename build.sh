@@ -5,7 +5,7 @@ mkdir bins
 mkdir bins/loaders bins/crypters
 
 rustup target add x86_64-pc-windows-gnu
-cargo build --target x86_64-pc-windows-gnu --release
+cargo build --target x86_64-pc-windows-gnu --release -Z build-std=std,panic_abort -Z build-std-features=panic_immediate_abort
 
 mv target/x86_64-pc-windows-gnu/release/rscrypter.exe bins/crypters/rscrypter.exe
 
