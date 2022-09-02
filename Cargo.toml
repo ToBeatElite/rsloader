@@ -20,6 +20,14 @@ name = "rsloader_CreateRemoteThread"
 path = "src/examples/loaders/rsloader_CreateRemoteThread.rs"
 
 [[bin]]
+name = "rsloader_direct_syscalls"
+path = "src/examples/loaders/rsloader_direct_syscalls.rs"
+
+[[bin]]
+name = "rsloader_NtCreateThreadEx"
+path = "src/examples/loaders/rsloader_NtCreateThreadEx.rs"
+
+[[bin]]
 name = "mirincrypter"
 path = "src/examples/crypters/mirincrypter.rs"
 
@@ -34,6 +42,14 @@ path = "src/examples/loaders/mirinloader_EnumSystemGeoID.rs"
 [[bin]]
 name = "mirinloader_CreateRemoteThread"
 path = "src/examples/loaders/mirinloader_CreateRemoteThread.rs"
+
+[[bin]]
+name = "mirinloader_direct_syscalls"
+path = "src/examples/loaders/mirinloader_direct_syscalls.rs"
+
+[[bin]]
+name = "mirinloader_NtCreateThreadEx"
+path = "src/examples/loaders/mirinloader_NtCreateThreadEx.rs"
 
 [profile.release]
 codegen-units = 1
