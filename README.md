@@ -13,3 +13,4 @@ A shellcode loading library mainly for windows, written using rustlang. I made t
 ```bash
 ./build.sh
 ```
+binaries will be then found in ./bins
