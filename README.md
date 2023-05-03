@@ -21,4 +21,4 @@ binaries will be then found in ./bins
 its metasploit comms getting dectected here not the loader because I didnt know about sliver then ^^^. this is the demo of shellcode being stored in, and extracted from the image; that functionality is called "mirinloader" in the repo.
 
 
-![rsloader demo mp4](https://youtu.be/dw_ZaikzooY)
+rsloader demo mp4 https://youtu.be/dw_ZaikzooY
